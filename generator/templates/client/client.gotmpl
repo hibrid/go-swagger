@@ -211,7 +211,7 @@ func (a *Client) {{ pascalize .Name }}(ctx context.Context, params *{{ pascalize
   {{ else }}
   createdResult := result.(*{{ pascalize .SuccessResponse.Name }})
 	location := createdResult.HttpResponse.GetHeader("Location")
-	if params.SkipLocationHeader || len(location) < 8 {
+	if !params.ProcessLocationHeader || len(location) < 8 {
 		return createdResult, nil
 	}
 	// Remove hostname

@@ -104,7 +104,7 @@ type {{ pascalize .Name }}Params struct {
   {{ camelize .TimeoutName }} time.Duration
   Context context.Context
   HTTPClient *http.Client
-  SkipLocationHeader bool // For create APIs that return 201, don't follow location header.
+  ProcessLocationHeader bool // For create APIs that return 201, send another request and retrieve the resource.
 }
 
 // WithDefaults hydrates default values in the {{ humanize .Name }} params (not the query body).
