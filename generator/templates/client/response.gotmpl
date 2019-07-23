@@ -256,6 +256,7 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Reader) ReadResponse(response ru
   switch response.Code() {
   {{- end }}
   {{- range .Responses }}
+    {{if .IsSuccess}}
     case {{ .Code }}{{if eq .Code 201 }}, 200{{end}}:
       result := New{{ pascalize .Name }}({{ if .Schema }}{{ if .Schema.IsStream }}{{ $.ReceiverName }}.writer{{ end }}{{ end }})
       result.HttpResponse = response
@@ -263,6 +264,7 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Reader) ReadResponse(response ru
         return nil, err
       }
       return {{ if .IsSuccess }}result, nil{{else}}nil, result{{end}}
+    {{- end }}
   {{end}}default:
                errorResult := kbcommon.NewKillbillError(response.Code())
                if err := consumer.Consume(response.Body(), &errorResult); err != nil && err != io.EOF {
