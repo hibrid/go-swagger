@@ -123,10 +123,10 @@ func (a *Client) {{ pascalize .Name }}(ctx context.Context, params *{{ pascalize
         params.XKillbillReason = a.defaults.XKillbillReason()
       }
     {{- end }}
-    if params.WithStackTrace == nil && a.defaults.KillbillWithStackTrace() != nil {
-      params.WithStackTrace = a.defaults.KillbillWithStackTrace()
-    }
-  {{- end -}}
+  {{- end }}
+      if params.WithStackTrace == nil && a.defaults.KillbillWithStackTrace() != nil {
+        params.WithStackTrace = a.defaults.KillbillWithStackTrace()
+      }
 
   op := &runtime.ClientOperation{
     ID: {{ printf "%q" .Name }},
