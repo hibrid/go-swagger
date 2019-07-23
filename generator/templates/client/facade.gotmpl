@@ -51,7 +51,7 @@ func New(transport runtime.ClientTransport,
 
   cli := &{{ pascalize .Name }}{
     Transport: transport,
-    defaults: defaults,
+    defaults: defaultsImpl{KillbillDefaults: defaults},
   }
   {{ range .OperationGroups }}
   cli.{{ pascalize .Name }} = {{ .Name }}.New(transport, formats, authInfo, &cli.defaults)
@@ -94,7 +94,7 @@ type {{ pascalize .Name }} struct {
     {{ pascalize .Name }} {{ .PackageAlias }}.ClientService
   {{ end }}
   Transport runtime.ClientTransport
-  defaults KillbillDefaults
+  defaults defaultsImpl
 }
 
 
@@ -108,44 +108,53 @@ func (c *{{pascalize .Name}}) SetTransport(transport runtime.ClientTransport) {
 
 // Defaults returns killbill defaults
 func (c *{{pascalize .Name}}) Defaults() KillbillDefaults {
-  return c.defaults
+  return c.defaults.KillbillDefaults
 }
 
 // SetDefaults sets killbill defaults
 func (c *{{pascalize .Name}}) SetDefaults(defaults KillbillDefaults) {
-  c.defaults = defaults
+  c.defaults = defaultsImpl{KillbillDefaults: defaults}
 }
 
 // Implements killbill default values.
 type KillbillDefaults struct {
-	apiKey    *string
-	apiSecret *string
-	createdBy *string
-	comment   *string
-	reason    *string
+  // XKillbillAPIKey property
+	APIKey    *string
+  // XKillbillAPISecret property
+	APISecret *string
+  // XKillbillCreatedBy property
+	CreatedBy *string
+  // XKillbillComment property
+	Comment   *string
+  // XKillbillReason property
+	Reason    *string
+}
+
+type defaultsImpl struct {
+  KillbillDefaults
 }
 
 // Default API Key. If not set explicitly in params, this will be used.
-func (d *KillbillDefaults) XKillbillAPIKey() *string {
-	return d.apiKey
+func (d *defaultsImpl) XKillbillAPIKey() *string {
+	return d.APIKey
 }
 
 // Default API Secret. If not set explicitly in params, this will be used.
-func (d *KillbillDefaults) XKillbillAPISecret() *string {
-	return d.apiSecret
+func (d *defaultsImpl) XKillbillAPISecret() *string {
+	return d.APISecret
 }
 
 // Default CreatedBy. If not set explicitly in params, this will be used.
-func (d *KillbillDefaults) XKillbillCreatedBy() *string {
-	return d.createdBy
+func (d *defaultsImpl) XKillbillCreatedBy() *string {
+	return d.CreatedBy
 }
 
 // Default Comment. If not set explicitly in params, this will be used.
-func (d *KillbillDefaults) XKillbillComment() *string {
-	return d.comment
+func (d *defaultsImpl) XKillbillComment() *string {
+	return d.Comment
 }
 
 // Default Reason. If not set explicitly in params, this will be used.
-func (d *KillbillDefaults) XKillbillReason() *string {
-	return d.reason
+func (d *defaultsImpl) XKillbillReason() *string {
+	return d.Reason
 }
