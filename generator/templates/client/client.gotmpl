@@ -210,17 +210,10 @@ func (a *Client) {{ pascalize .Name }}(ctx context.Context, params *{{ pascalize
   {{- end }}
   {{ else }}
   createdResult := result.(*{{ pascalize .SuccessResponse.Name }})
-	location := createdResult.HttpResponse.GetHeader("Location")
-	if !params.ProcessLocationHeader || len(location) < 8 {
+	location := kbcommon.ParseLocationHeader(createdResult.HttpResponse.GetHeader("Location"))
+	if !params.ProcessLocationHeader || location == "" {
 		return createdResult, nil
 	}
-	// Remove hostname
-	location = location[8:]
-	idx := strings.Index(location, "/")
-	if idx == -1 {
-		return createdResult, nil
-	}
-	location = location[idx:]
 
   getResult, err := a.transport.Submit(&runtime.ClientOperation{
     ID: {{ printf "%q" .Name }},
