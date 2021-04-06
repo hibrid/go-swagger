@@ -100,6 +100,8 @@ type {{ pascalize .Name }}Params struct {
     {{ pascalize .ID }} {{ if and (not .IsArray) (not .IsMap) (not .HasDiscriminator) (not .IsInterface) (not .IsStream) (or .IsNullable  ) }}*{{ end }}{{ if not .IsFileParam }}{{ .GoType }}{{ else }}runtime.NamedReadCloser{{ end }}
   {{- end }}
 
+
+  WithProfilingInfo *string // If set, return KB hprof headers
   WithStackTrace *bool // If set, returns full stack trace with error message
   {{ camelize .TimeoutName }} time.Duration
   Context context.Context
@@ -362,6 +364,14 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) WriteToRequest(r runtime
   {{- end }}
 
   {{end}}
+
+
+  // header param WithProfilingInfo
+	if o.WithProfilingInfo != nil && len(*o.WithProfilingInfo) > 0  {
+		if err := r.SetHeaderParam("X-Killbill-Profiling-Req", *o.WithProfilingInfo); err != nil {
+			return err
+		}
+	}
 
   // header param withStackTrace
   if o.WithStackTrace != nil && *o.WithStackTrace {
