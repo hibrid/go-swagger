@@ -234,6 +234,7 @@ import (
   "github.com/go-openapi/strfmt"
   "github.com/go-openapi/swag"
   "github.com/go-openapi/validate"
+  "github.com/killbill/kbcli/kbcommon"
 
   {{ imports .DefaultImports }}
   {{ imports .Imports }}
@@ -258,31 +259,14 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Reader) ReadResponse(response ru
       if err := result.readResponse(response, consumer, {{ $.ReceiverName }}.formats); err != nil {
         return nil, err
       }
-      return {{ if .IsSuccess }}result, nil{{else}}nil, result{{ end }}
-  {{- end }}
-  {{- if .DefaultResponse }}
-    {{- with .DefaultResponse }}
-      {{- if $.Responses}}
-    default:
-      {{- end }}
-      result := New{{ pascalize .Name }}(response.Code(){{ if .Schema }}{{ if .Schema.IsStream }}, {{ $.ReceiverName }}.writer{{ end }}{{ end }})
-      if err := result.readResponse(response, consumer, {{ $.ReceiverName }}.formats); err != nil {
-        return nil, err
-      }
-      if response.Code() / 100 == 2 {
-        return result, nil
-      }
-      return nil, result
-    {{- end }}
-  {{- else }}
-    {{- if $.Responses}}
-    default:
-    {{- end }}
-      return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
-  {{- end }}
-  {{- if .Responses}}
-  }
-  {{- end }}
+      return {{ if .IsSuccess }}result, nil{{else}}nil, result{{end}}
+  {{end}}default:
+               errorResult := kbcommon.NewKillbillError(response.Code())
+               if err := consumer.Consume(response.Body(), &errorResult); err != nil && err != io.EOF {
+                 return nil, err
+               }
+               return nil, errorResult
+  {{ if .Responses}}}{{ end }}
 }
 
 {{ range .Responses }}
