@@ -62,6 +62,16 @@ type {{ pascalize .Name }} struct {
 
   Payload {{ if and (not .Schema.IsBaseType) (not .Schema.IsInterface) .Schema.IsComplexObject (not .Schema.IsStream) }}*{{ end }}{{ if (not .Schema.IsStream) }}{{ .Schema.GoType }}{{ else }}io.Writer{{end}}
   {{- end }}
+  HttpResponse runtime.ClientResponse
+}
+
+// Code gets the status code for the {{ humanize .Name }} response
+func ({{ .ReceiverName }} *{{ pascalize .Name }}) Code() int {
+  {{- if eq .Code -1 }}
+  return {{ .ReceiverName }}._statusCode
+  {{- else }}
+  return {{ .Code }}
+  {{- end }}
 }
 
 // IsSuccess returns true when this {{ humanize .Name }} response has a 2xx status code
@@ -109,14 +119,6 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}) IsCode(code int) bool {
   {{- end }}
 }
 
-// Code gets the status code for the {{ humanize .Name }} response
-func ({{ .ReceiverName }} *{{ pascalize .Name }}) Code() int {
-  {{- if eq .Code -1 }}
-  return {{ .ReceiverName }}._statusCode
-  {{- else }}
-  return {{ .Code }}
-  {{- end }}
-}
 
 func ({{ .ReceiverName }} *{{ pascalize .Name }}) Error() string {
 	return fmt.Sprintf("[{{ upper .Method }} {{ .Path }}][%d] {{ if .Name }}{{ .Name }} {{ else }}unknown error {{ end }}{{ if .Schema }} %+v{{ end }}", {{ if eq .Code -1 }}{{ .ReceiverName }}._statusCode{{ else }}{{ .Code }}{{ end }}{{ if .Schema }}, o.Payload{{ end }})
@@ -254,8 +256,9 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Reader) ReadResponse(response ru
   switch response.Code() {
   {{- end }}
   {{- range .Responses }}
-    case {{ .Code }}:
+    case {{ .Code }}{{if eq .Code 201 }}, 200{{end}}:
       result := New{{ pascalize .Name }}({{ if .Schema }}{{ if .Schema.IsStream }}{{ $.ReceiverName }}.writer{{ end }}{{ end }})
+      result.HttpResponse = response
       if err := result.readResponse(response, consumer, {{ $.ReceiverName }}.formats); err != nil {
         return nil, err
       }

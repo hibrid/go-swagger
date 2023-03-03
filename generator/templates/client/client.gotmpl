@@ -82,9 +82,14 @@ type ClientService interface {
 */
 func (a *Client) {{ pascalize .Name }}(ctx context.Context, params *{{ pascalize .Name }}Params{{ if .Authorized }}{{end}}{{ if .HasStreamingResponse }}, writer io.Writer{{ end }}) {{ if .SuccessResponse }}({{ range .SuccessResponses }}*{{ pascalize .Name }}, {{ end }}{{ end }}error{{ if .SuccessResponse }}){{ end }} {
   // TODO: Validate the params before sending
+  {{ $isCreateRequest := and (eq .SuccessResponse.Code 201) (eq (len .SuccessResponses) 1) -}}
   if params == nil {
     params = New{{ pascalize .Name }}Params()
   }
+  {{- if $isCreateRequest }}
+  getParams := New{{ pascalize .Name }}Params()
+  getParams.Context = ctx
+  {{- end }}
   params.Context = ctx
   {{- range .Params -}}
      {{- $name := pascalize .Name -}}
@@ -102,31 +107,49 @@ func (a *Client) {{ pascalize .Name }}(ctx context.Context, params *{{ pascalize
        if params.XKillbillCreatedBy == "" && a.defaults.XKillbillCreatedBy() != nil {
          params.XKillbillCreatedBy = *a.defaults.XKillbillCreatedBy()
       }
+      {{ if $isCreateRequest -}}
+    	getParams.XKillbillAPIKey = params.XKillbillAPIKey
+      {{- end }}
     {{- end }}
     {{- if eq $name "XKillbillAPISecret" }}
       if params.XKillbillAPISecret == "" && a.defaults.XKillbillAPISecret() != nil {
         params.XKillbillAPISecret = *a.defaults.XKillbillAPISecret()
       }
+      {{ if $isCreateRequest -}}
+	    getParams.XKillbillAPISecret = params.XKillbillAPISecret
+      {{- end }}
     {{- end }}
     {{ if eq $name "XKillbillCreatedBy" }}
       if params.XKillbillCreatedBy == "" && a.defaults.XKillbillCreatedBy() != nil {
         params.XKillbillCreatedBy = *a.defaults.XKillbillCreatedBy()
       }
+      {{ if $isCreateRequest -}}
+    	getParams.XKillbillCreatedBy = params.XKillbillCreatedBy
+      {{- end }}
     {{- end }}
     {{- if eq $name "XKillbillComment" }}
       if params.XKillbillComment == nil && a.defaults.XKillbillComment() != nil {
         params.XKillbillComment = a.defaults.XKillbillComment()
       }
+      {{ if $isCreateRequest -}}
+	    getParams.XKillbillComment = params.XKillbillComment
+      {{- end }}
     {{- end }}
     {{- if eq $name "XKillbillReason" }}
       if params.XKillbillReason == nil && a.defaults.XKillbillReason() != nil {
         params.XKillbillReason = a.defaults.XKillbillReason()
       }
+      {{ if $isCreateRequest -}}
+	    getParams.XKillbillReason = params.XKillbillReason
+      {{- end }}
     {{- end }}
   {{- end }}
       if params.WithStackTrace == nil && a.defaults.KillbillWithStackTrace() != nil {
         params.WithStackTrace = a.defaults.KillbillWithStackTrace()
       }
+      {{ if $isCreateRequest -}}
+	    getParams.WithStackTrace = params.WithStackTrace
+    {{- end }}
 
   op := &runtime.ClientOperation{
     ID: {{ printf "%q" .Name }},
@@ -149,6 +172,7 @@ func (a *Client) {{ pascalize .Name }}(ctx context.Context, params *{{ pascalize
   if err != nil {
     return {{ if .SuccessResponse }}{{ padSurround "nil" "nil" 0 $length }}, {{ end }}err
   }
+  {{- if not $isCreateRequest }}
   {{- if .SuccessResponse }}
     {{- if eq $length 1 }}
   success, ok := result.(*{{ pascalize .SuccessResponse.Name }})
@@ -184,6 +208,38 @@ func (a *Client) {{ pascalize .Name }}(ctx context.Context, params *{{ pascalize
   {{- else }}
   return nil
   {{- end }}
+  {{ else }}
+  createdResult := result.(*{{ pascalize .SuccessResponse.Name }})
+	location := createdResult.HttpResponse.GetHeader("Location")
+	if params.SkipLocationHeader || len(location) < 8 {
+		return createdResult, nil
+	}
+	// Remove hostname
+	location = location[8:]
+	idx := strings.Index(location, "/")
+	if idx == -1 {
+		return createdResult, nil
+	}
+	location = location[idx:]
+
+  getResult, err := a.transport.Submit(&runtime.ClientOperation{
+    ID: {{ printf "%q" .Name }},
+    Method: "GET",
+    PathPattern: location,
+    ProducesMediaTypes: {{ printf "%#v" .ProducesMediaTypes }},
+    ConsumesMediaTypes: {{ printf "%#v" .ConsumesMediaTypes }},
+    Schemes: {{ printf "%#v" .Schemes }},
+    Params: getParams,
+    Reader: &{{ pascalize .Name }}Reader{formats: a.formats{{ if .HasStreamingResponse }}, writer: writer{{ end }}},{{ if .Authorized }}
+    AuthInfo: a.authInfo,{{ end}}
+    Context: getParams.Context,
+    Client: getParams.HTTPClient,
+  })
+  if err != nil {
+    return nil, err
+  }
+	return getResult.(*{{ pascalize .SuccessResponse.Name }}), nil
+  {{end}}
 }
 {{- end }}
 

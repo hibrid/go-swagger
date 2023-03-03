@@ -100,10 +100,11 @@ type {{ pascalize .Name }}Params struct {
     {{ pascalize .ID }} {{ if and (not .IsArray) (not .IsMap) (not .HasDiscriminator) (not .IsInterface) (not .IsStream) (or .IsNullable  ) }}*{{ end }}{{ if not .IsFileParam }}{{ .GoType }}{{ else }}runtime.NamedReadCloser{{ end }}
   {{- end }}
 
-  WithStackTrace *bool
+  WithStackTrace *bool // If set, returns full stack trace with error message
   {{ camelize .TimeoutName }} time.Duration
   Context context.Context
   HTTPClient *http.Client
+  SkipLocationHeader bool // For create APIs that return 201, don't follow location header.
 }
 
 // WithDefaults hydrates default values in the {{ humanize .Name }} params (not the query body).
