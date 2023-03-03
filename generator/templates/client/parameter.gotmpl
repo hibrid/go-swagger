@@ -363,9 +363,6 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) WriteToRequest(r runtime
 
   {{- end }}
 
-  {{end}}
-
-
   // header param WithProfilingInfo
 	if o.WithProfilingInfo != nil && len(*o.WithProfilingInfo) > 0  {
 		if err := r.SetHeaderParam("X-Killbill-Profiling-Req", *o.WithProfilingInfo); err != nil {
