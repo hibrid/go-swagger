@@ -36,10 +36,6 @@ func New(transport runtime.ClientTransport,
 // killbill default values. When a call is made to an operation, these values are used
 // if params doesn't specify them.
 type KillbillDefaults interface {
-  // Default API Key. If not set explicitly in params, this will be used.
-  XKillbillAPIKey() *string
-  // Default API Secret. If not set explicitly in params, this will be used.
-  XKillbillAPISecret() *string
   // Default CreatedBy. If not set explicitly in params, this will be used.
   XKillbillCreatedBy() *string
   // Default Comment. If not set explicitly in params, this will be used.
@@ -104,33 +100,7 @@ func (a *Client) {{ pascalize .Name }}(ctx context.Context, params *{{ pascalize
   {{- end }}
   params.Context = ctx
   {{- range .Params -}}
-     {{- $name := pascalize .Name -}}
-     {{- if eq $name "XKillbillAPIKey" }}
-       if params.XKillbillAPIKey == "" && a.defaults.XKillbillAPIKey() != nil {
-         params.XKillbillAPIKey = *a.defaults.XKillbillAPIKey()
-       }
-     {{- end }}
-     {{- if eq $name "XKillbillAPISecret" }}
-       if params.XKillbillAPISecret == "" && a.defaults.XKillbillAPISecret() != nil {
-         params.XKillbillAPISecret = *a.defaults.XKillbillAPISecret()
-       }
-     {{- end }}
-     {{ if eq $name "XKillbillCreatedBy" }}
-       if params.XKillbillCreatedBy == "" && a.defaults.XKillbillCreatedBy() != nil {
-         params.XKillbillCreatedBy = *a.defaults.XKillbillCreatedBy()
-      }
-      {{ if $isCreateRequest -}}
-    	getParams.XKillbillAPIKey = params.XKillbillAPIKey
-      {{- end }}
-    {{- end }}
-    {{- if eq $name "XKillbillAPISecret" }}
-      if params.XKillbillAPISecret == "" && a.defaults.XKillbillAPISecret() != nil {
-        params.XKillbillAPISecret = *a.defaults.XKillbillAPISecret()
-      }
-      {{ if $isCreateRequest -}}
-	    getParams.XKillbillAPISecret = params.XKillbillAPISecret
-      {{- end }}
-    {{- end }}
+    {{- $name := pascalize .Name -}}
     {{ if eq $name "XKillbillCreatedBy" }}
       if params.XKillbillCreatedBy == "" && a.defaults.XKillbillCreatedBy() != nil {
         params.XKillbillCreatedBy = *a.defaults.XKillbillCreatedBy()
