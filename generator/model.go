@@ -2066,6 +2066,12 @@ func (sg *schemaGenContext) makeGenSchema() error {
 	if err != nil {
 		return err
 	}
+	if len(sg.Schema.Enum) > 0 {
+		// For enums, use aliases type.
+		tpe.GoType = fmt.Sprintf("%s%sEnum", sg.Container, pascalize(sg.Name))
+		tpe.IsAliased = true
+		tpe.AliasedType = "string"
+	}
 	otn := tpe.IsNullable // for debug only
 	tpe.IsNullable = tpe.IsNullable || nullableOverride
 	sg.GenSchema.resolvedType = tpe
