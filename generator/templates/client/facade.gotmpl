@@ -24,62 +24,39 @@ import (
   {{ imports .Imports }}
 )
 
-// Default {{ humanize .Name }} HTTP client.
-var Default = NewHTTPClient(nil)
-
-const (
-    // DefaultHost is the default Host
-    // found in Meta (info) section of spec file
-    DefaultHost string = {{ printf "%#v" .Host }}
-    // DefaultBasePath is the default BasePath
-    // found in Meta (info) section of spec file
-    DefaultBasePath string = {{ printf "%#v" .BasePath }}
-)
-
-// DefaultSchemes are the default schemes found in Meta (info) section of spec file
-var DefaultSchemes = {{ printf "%#v" .Schemes }}
-
-// NewHTTPClient creates a new {{ humanize .Name }} HTTP client.
-func NewHTTPClient(formats strfmt.Registry) *{{ pascalize .Name }} {
-  return NewHTTPClientWithConfig(formats, nil)
-}
-
-// NewHTTPClientWithConfig creates a new {{ humanize .Name }} HTTP client,
-// using a customizable transport config.
-func NewHTTPClientWithConfig(formats strfmt.Registry, cfg *TransportConfig) *{{ pascalize .Name }} {
-  // ensure nullable parameters have default
-  if cfg == nil {
-    cfg = DefaultTransportConfig()
-  }
-
-  // create transport and client
-  transport := httptransport.New(cfg.Host, cfg.BasePath, cfg.Schemes)
-  return New(transport, formats)
-}
-
 // New creates a new {{ humanize .Name }} client
-func New(transport runtime.ClientTransport, formats strfmt.Registry) *{{ pascalize .Name }} {
+// The following snippet provides creating killbill client with basic auth.
+//
+//
+// 	   trp := httptransport.New("127.0.0.1:8080" /*host*/, "" /*basePath*/, nil /*schemes*/)
+// 	   // Add missing handler. OpenAPI runtime doesn't have this by default
+// 	   trp.Producers["text/xml"] = runtime.TextProducer()
+// 	   // Set tro true to print http/debug logs
+// 	   trp.Debug = enableDebug
+// 	   // Setup basic auth
+// 	   authWriter := httptransport.BasicAuth("admin", "password")
+// 	   client := kbclient.New(trp, strfmt.Default)
+//     // Use client
+//     client.Accounts.GetAccount(...)
+//
+func New(transport runtime.ClientTransport,
+         formats strfmt.Registry,
+         authInfo runtime.ClientAuthInfoWriter,
+         defaults KillbillDefaults) *{{ pascalize .Name }} {
+
   // ensure nullable parameters have default
   if formats == nil {
     formats = strfmt.Default
   }
 
-  cli := new({{ pascalize .Name }})
-  cli.Transport = transport
-  {{- range .OperationGroups }}
-  cli.{{ pascalize .Name }} = {{ .PackageAlias }}.New(transport, formats)
-  {{- end }}
+  cli := &{{ pascalize .Name }}{
+    Transport: transport,
+    defaults: defaults,
+  }
+  {{ range .OperationGroups }}
+  cli.{{ pascalize .Name }} = {{ .Name }}.New(transport, formats, authInfo, &cli.defaults)
+  {{ end }}
   return cli
-}
-
-// DefaultTransportConfig creates a TransportConfig with the
-// default settings taken from the meta section of the spec file.
-func DefaultTransportConfig() *TransportConfig {
-    return &TransportConfig {
-        Host: DefaultHost,
-        BasePath: DefaultBasePath,
-        Schemes: DefaultSchemes,
-    }
 }
 
 // TransportConfig contains the transport related info,
@@ -117,6 +94,7 @@ type {{ pascalize .Name }} struct {
     {{ pascalize .Name }} {{ .PackageAlias }}.ClientService
   {{ end }}
   Transport runtime.ClientTransport
+  defaults KillbillDefaults
 }
 
 
@@ -126,4 +104,48 @@ func (c *{{pascalize .Name}}) SetTransport(transport runtime.ClientTransport) {
   {{- range .OperationGroups }}
   c.{{ pascalize .Name }}.SetTransport(transport)
   {{- end }}
+}
+
+// Defaults returns killbill defaults
+func (c *{{pascalize .Name}}) Defaults() KillbillDefaults {
+  return c.defaults
+}
+
+// SetDefaults sets killbill defaults
+func (c *{{pascalize .Name}}) SetDefaults(defaults KillbillDefaults) {
+  c.defaults = defaults
+}
+
+// Implements killbill default values.
+type KillbillDefaults struct {
+	apiKey    *string
+	apiSecret *string
+	createdBy *string
+	comment   *string
+	reason    *string
+}
+
+// Default API Key. If not set explicitly in params, this will be used.
+func (d *KillbillDefaults) XKillbillAPIKey() *string {
+	return d.apiKey
+}
+
+// Default API Secret. If not set explicitly in params, this will be used.
+func (d *KillbillDefaults) XKillbillAPISecret() *string {
+	return d.apiSecret
+}
+
+// Default CreatedBy. If not set explicitly in params, this will be used.
+func (d *KillbillDefaults) XKillbillCreatedBy() *string {
+	return d.createdBy
+}
+
+// Default Comment. If not set explicitly in params, this will be used.
+func (d *KillbillDefaults) XKillbillComment() *string {
+	return d.comment
+}
+
+// Default Reason. If not set explicitly in params, this will be used.
+func (d *KillbillDefaults) XKillbillReason() *string {
+	return d.reason
 }

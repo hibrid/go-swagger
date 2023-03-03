@@ -13,7 +13,7 @@ import (
   "fmt"
   "io"
   "net/http"
-
+  "context"
   "github.com/go-openapi/errors"
   "github.com/go-openapi/runtime"
   "github.com/go-openapi/strfmt"
@@ -25,8 +25,27 @@ import (
 )
 
 // New creates a new {{ humanize .Name }} API client.
-func New(transport runtime.ClientTransport, formats strfmt.Registry) ClientService {
-  return &Client{transport: transport, formats: formats}
+func New(transport runtime.ClientTransport,
+         formats strfmt.Registry,
+         authInfo runtime.ClientAuthInfoWriter,
+         defaults KillbillDefaults) *Client {
+
+  return &Client{transport: transport, formats: formats, authInfo: authInfo, defaults: defaults}
+}
+
+// killbill default values. When a call is made to an operation, these values are used
+// if params doesn't specify them.
+type KillbillDefaults interface {
+  // Default API Key. If not set explicitly in params, this will be used.
+  XKillbillAPIKey() *string
+  // Default API Secret. If not set explicitly in params, this will be used.
+  XKillbillAPISecret() *string
+  // Default CreatedBy. If not set explicitly in params, this will be used.
+  XKillbillCreatedBy() *string
+  // Default Comment. If not set explicitly in params, this will be used.
+  XKillbillComment() *string
+  // Default Reason. If not set explicitly in params, this will be used.
+  XKillbillReason() *string
 }
 
 /*
@@ -37,6 +56,8 @@ Client {{ if .Summary }}{{ .Summary }}{{ if .Description }}
 type Client struct {
   transport runtime.ClientTransport
   formats strfmt.Registry
+  authInfo runtime.ClientAuthInfoWriter
+  defaults KillbillDefaults
 }
 
 // ClientOption is the option for Client methods
@@ -57,11 +78,41 @@ type ClientService interface {
 
   {{ blockcomment .Description }}{{ end }}{{ else if .Description}}{{ blockcomment .Description }}{{ else }}{{ humanize .Name }} API{{ end }}
 */
-func (a *Client) {{ pascalize .Name }}(params *{{ pascalize .Name }}Params{{ if .Authorized }}, authInfo runtime.ClientAuthInfoWriter{{end}}{{ if .HasStreamingResponse }}, writer io.Writer{{ end }}, opts ...ClientOption) {{ if .SuccessResponse }}({{ range .SuccessResponses }}*{{ pascalize .Name }}, {{ end }}{{ end }}error{{ if .SuccessResponse }}){{ end }} {
+func (a *Client) {{ pascalize .Name }}(ctx context.Context, params *{{ pascalize .Name }}Params{{ if .Authorized }}{{end}}{{ if .HasStreamingResponse }}, writer io.Writer{{ end }}) {{ if .SuccessResponse }}({{ range .SuccessResponses }}*{{ pascalize .Name }}, {{ end }}{{ end }}error{{ if .SuccessResponse }}){{ end }} {
   // TODO: Validate the params before sending
   if params == nil {
     params = New{{ pascalize .Name }}Params()
   }
+  params.Context = ctx
+  {{- range .Params -}}
+     {{- $name := pascalize .Name -}}
+     {{- if eq $name "XKillbillAPIKey" }}
+       if params.XKillbillAPIKey == "" && a.defaults.XKillbillAPIKey() != nil {
+         params.XKillbillAPIKey = *a.defaults.XKillbillAPIKey()
+       }
+     {{- end }}
+     {{- if eq $name "XKillbillAPISecret" }}
+       if params.XKillbillAPISecret == "" && a.defaults.XKillbillAPISecret() != nil {
+         params.XKillbillAPISecret = *a.defaults.XKillbillAPISecret()
+       }
+     {{- end }}
+     {{ if eq $name "XKillbillCreatedBy" }}
+       if params.XKillbillCreatedBy == "" && a.defaults.XKillbillCreatedBy() != nil {
+         params.XKillbillCreatedBy = *a.defaults.XKillbillCreatedBy()
+      }
+     {{- end }}
+     {{- if eq $name "XKillbillComment" }}
+       if params.XKillbillComment == nil && a.defaults.XKillbillComment() != nil {
+         params.XKillbillComment = a.defaults.XKillbillComment()
+       }
+     {{- end }}
+     {{- if eq $name "XKillbillReason" }}
+       if params.XKillbillReason == nil && a.defaults.XKillbillReason() != nil {
+         params.XKillbillReason = a.defaults.XKillbillReason()
+       }
+     {{- end -}}
+  {{- end -}}
+
   op := &runtime.ClientOperation{
     ID: {{ printf "%q" .Name }},
     Method: {{ printf "%q" .Method }},
@@ -71,7 +122,7 @@ func (a *Client) {{ pascalize .Name }}(params *{{ pascalize .Name }}Params{{ if 
     Schemes: {{ printf "%#v" .Schemes }},
     Params: params,
     Reader: &{{ pascalize .Name }}Reader{formats: a.formats{{ if .HasStreamingResponse }}, writer: writer{{ end }}},{{ if .Authorized }}
-    AuthInfo: authInfo,{{ end}}
+    AuthInfo: a.authInfo,{{ end}}
     Context: params.Context,
     Client: params.HTTPClient,
   }
