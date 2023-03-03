@@ -46,6 +46,8 @@ type KillbillDefaults interface {
   XKillbillComment() *string
   // Default Reason. If not set explicitly in params, this will be used.
   XKillbillReason() *string
+  // Default WithStackTrace. If not set explicitly in params, this will be used.
+  KillbillWithStackTrace() *bool
 }
 
 /*
@@ -100,17 +102,30 @@ func (a *Client) {{ pascalize .Name }}(ctx context.Context, params *{{ pascalize
        if params.XKillbillCreatedBy == "" && a.defaults.XKillbillCreatedBy() != nil {
          params.XKillbillCreatedBy = *a.defaults.XKillbillCreatedBy()
       }
-     {{- end }}
-     {{- if eq $name "XKillbillComment" }}
-       if params.XKillbillComment == nil && a.defaults.XKillbillComment() != nil {
-         params.XKillbillComment = a.defaults.XKillbillComment()
-       }
-     {{- end }}
-     {{- if eq $name "XKillbillReason" }}
-       if params.XKillbillReason == nil && a.defaults.XKillbillReason() != nil {
-         params.XKillbillReason = a.defaults.XKillbillReason()
-       }
-     {{- end -}}
+    {{- end }}
+    {{- if eq $name "XKillbillAPISecret" }}
+      if params.XKillbillAPISecret == "" && a.defaults.XKillbillAPISecret() != nil {
+        params.XKillbillAPISecret = *a.defaults.XKillbillAPISecret()
+      }
+    {{- end }}
+    {{ if eq $name "XKillbillCreatedBy" }}
+      if params.XKillbillCreatedBy == "" && a.defaults.XKillbillCreatedBy() != nil {
+        params.XKillbillCreatedBy = *a.defaults.XKillbillCreatedBy()
+      }
+    {{- end }}
+    {{- if eq $name "XKillbillComment" }}
+      if params.XKillbillComment == nil && a.defaults.XKillbillComment() != nil {
+        params.XKillbillComment = a.defaults.XKillbillComment()
+      }
+    {{- end }}
+    {{- if eq $name "XKillbillReason" }}
+      if params.XKillbillReason == nil && a.defaults.XKillbillReason() != nil {
+        params.XKillbillReason = a.defaults.XKillbillReason()
+      }
+    {{- end }}
+    if params.WithStackTrace == nil && a.defaults.KillbillWithStackTrace() != nil {
+      params.WithStackTrace = a.defaults.KillbillWithStackTrace()
+    }
   {{- end -}}
 
   op := &runtime.ClientOperation{

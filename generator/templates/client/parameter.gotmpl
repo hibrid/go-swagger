@@ -100,6 +100,7 @@ type {{ pascalize .Name }}Params struct {
     {{ pascalize .ID }} {{ if and (not .IsArray) (not .IsMap) (not .HasDiscriminator) (not .IsInterface) (not .IsStream) (or .IsNullable  ) }}*{{ end }}{{ if not .IsFileParam }}{{ .GoType }}{{ else }}runtime.NamedReadCloser{{ end }}
   {{- end }}
 
+  WithStackTrace *bool
   {{ camelize .TimeoutName }} time.Duration
   Context context.Context
   HTTPClient *http.Client
@@ -358,6 +359,15 @@ func ({{ .ReceiverName }} *{{ pascalize .Name }}Params) WriteToRequest(r runtime
     {{- end }}
 
   {{- end }}
+
+  {{end}}
+
+  // header param withStackTrace
+  if o.WithStackTrace != nil && *o.WithStackTrace {
+    if err := r.SetQueryParam("withStackTrace", "true"); err != nil {
+      return err
+    }
+  }
 
   if len(res) > 0 {
     return errors.CompositeValidationError(res...)
