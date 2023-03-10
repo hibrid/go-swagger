@@ -2,6 +2,23 @@
 
 Changes made to the generator code and associated templates.
 
+We have made some templates changes that unfortunately makes it hard to maintin this code.
+
+## Dependencies
+
+Recent version of GO and `go-bindata` need to be installed -e.g using `brew`: `brew install go-bindata`
+
+## Build
+
+```
+# Regenerate templates:
+make bindata
+
+# Regenerate swagger binary
+make swagger
+
+```
+
 ## Update against upstream
 
 ```
@@ -10,7 +27,6 @@ git fetch upstream
 git rebase -i upstream/master
 
 # Resolve conflicts
-
 git push -f
 ```
 
@@ -19,8 +35,6 @@ During the rebase, conflicts in `generator/bindata.go` can be ignored, as the fi
 ```
 git reset HEAD generator/bindata.go
 git checkout generator/bindata.go
-# brew install go-bindata
-go generate ./generator
 git add generator/bindata.go
 git commit -a
 git rebase --continue
