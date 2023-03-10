@@ -4,6 +4,7 @@ Changes made to the generator code and associated templates.
 
 We have made some templates changes that unfortunately makes it hard to maintin this code.
 
+
 ## Dependencies
 
 Recent version of GO and `go-bindata` need to be installed -e.g using `brew`: `brew install go-bindata`
@@ -39,6 +40,9 @@ git add generator/bindata.go
 git commit -a
 git rebase --continue
 ```
+
+The `killbill_v2` branch tracks the `go-swagger` code we were using to generate the `v2` `kbcli` client (against `0.22.x`). The branch `killbill` is the current code against rhe `v3` `kbcli` client (against `0.24.x`).
+
 
 ## Credits
 
